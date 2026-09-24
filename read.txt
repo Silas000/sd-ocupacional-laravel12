@@ -1,0 +1,32 @@
+Refatore meu sistema Laravel 12 (MVC) já existente para incluir:
+
+1. **Autenticação personalizada**
+   - Substituir as telas padrão de login e registro por telas estilizadas (TailwindCSS ou Bootstrap 5).
+   - Criar perfis de usuário: Admin (RH), Médico do Trabalho, Técnico de Segurança e Funcionário.
+   - Cada perfil deve ter permissões específicas.
+
+2. **Controle de permissões**
+   - Admin: acesso total (cadastro de usuários, exames, riscos, relatórios).
+   - Médico: acesso a exames e histórico de saúde dos trabalhadores.
+   - Técnico: acesso a riscos ocupacionais e registro de incidentes.
+   - Funcionário: acesso apenas ao próprio histórico e notificações.
+
+3. **Dashboards diferenciados por perfil**
+   - Admin: gráficos gerais (exames vencidos, riscos mais comuns, incidentes).
+   - Médico: lista de exames pendentes e relatórios de saúde.
+   - Técnico: mapa de riscos e ocorrências registradas.
+   - Funcionário: painel simples com exames pessoais e alertas.
+
+4. **Funcionalidades adicionais**
+   - Relatórios automáticos em PDF/Excel.
+   - Notificações por e-mail para exames vencidos.
+   - Gráficos interativos com Chart.js.
+   - Layout moderno e responsivo.
+
+5. **Organização do código**
+   - Controllers separados: UserController, ExamController, RiskController, IncidentController, DashboardController.
+   - Models: User, Exam, Risk, HealthRecord, Incident.
+   - Views em Blade organizadas por perfil (admin/, medico/, tecnico/, funcionario/).
+
+Obs: crie um admin padrão, que a sim que logar, ja peça para trocar a senha. 
+
