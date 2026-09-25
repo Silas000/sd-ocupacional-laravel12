@@ -16,8 +16,8 @@
         <dl class="grid grid-cols-1 gap-4">
             <div><dt class="text-sm font-medium text-gray-500">Paciente</dt><dd class="text-gray-900">{{ $exam->user->name ?? '-' }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Tipo</dt><dd class="text-gray-900">{{ $exam->tipo }}</dd></div>
-            <div><dt class="text-sm font-medium text-gray-500">Data do Exame</dt><dd class="text-gray-900">{{ \Carbon\Carbon::parse($exam->data_exame)->format('d/m/Y') }}</dd></div>
-            <div><dt class="text-sm font-medium text-gray-500">Data de Vencimento</dt><dd class="text-gray-900">{{ $exam->data_vencimento ? \Carbon\Carbon::parse($exam->data_vencimento)->format('d/m/Y') : '-' }}</dd></div>
+            <div><dt class="text-sm font-medium text-gray-500">Data do Exame</dt><dd class="text-gray-900">{{ $exam->data_exame?->format('d/m/Y') }}</dd></div>
+            <div><dt class="text-sm font-medium text-gray-500">Data de Vencimento</dt><dd class="text-gray-900">{{ $exam->data_vencimento?->format('d/m/Y') ?? '-' }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Status</dt><dd class="text-gray-900">{{ $exam->status ?? '-' }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Médico Responsável</dt><dd class="text-gray-900">{{ $exam->medico_responsavel ?? '-' }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Resultado</dt><dd class="text-gray-900">{{ $exam->resultado ?? '-' }}</dd></div>

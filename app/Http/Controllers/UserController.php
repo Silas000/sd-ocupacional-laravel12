@@ -2,124 +2,131 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
+use App\Http\Controllers\Concerns\PaginatesResults;
+use App\Http\Requests\UserRequest;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules;
+use Illuminate\View\View;
 
 class UserController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('check.role:admin');
-    }
+    use PaginatesResults;
 
-    public function index()
+    public function index(Request $request): View
     {
-        $users = User::all();
-        return view('users.index', compact('users'));
-    }
+        $this->authorize('viewAny', User::class);
 
-    public function create()
-    {
-        return view('users.create');
-    }
+        $filtros = $this->filtros($request, ['q', 'role', 'setor', 'situacao']);
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', Rule::in(['admin', 'medico', 'tecnico', 'funcionario'])],
-            'cpf' => ['nullable', 'string', 'max:20'],
-            'cargo' => ['nullable', 'string', 'max:100'],
-            'setor' => ['nullable', 'string', 'max:100'],
-            'data_admissao' => ['nullable', 'date'],
-            'data_demissao' => ['nullable', 'date'],
-            'observacoes' => ['nullable', 'string'],
-        ], [
-            'name.required' => 'O nome é obrigatório.',
-            'email.required' => 'O e-mail é obrigatório.',
-            'email.email' => 'O e-mail informado é inválido.',
-            'email.unique' => 'Este e-mail já está cadastrado.',
-            'password.required' => 'A senha é obrigatória.',
-            'password.confirmed' => 'A confirmação de senha não coincide.',
-            'role.required' => 'O perfil de acesso é obrigatório.',
-            'role.in' => 'O perfil de acesso selecionado é inválido.',
-            'data_admissao.date' => 'A data de admissão é inválida.',
-            'data_demissao.date' => 'A data de demissão é inválida.',
+        $users = User::query()
+            ->filtrar($filtros)
+            ->orderBy('name')
+            ->paginate($this->perPage($request))
+            ->withQueryString();
+
+        return view('users.index', [
+            'users' => $users,
+            'filtros' => $filtros,
+            'roles' => $this->roleOptions(),
+            'setores' => $this->setoresExistentes(),
         ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-            'cpf' => $request->cpf,
-            'cargo' => $request->cargo,
-            'setor' => $request->setor,
-            'data_admissao' => $request->data_admissao,
-            'data_demissao' => $request->data_demissao,
-            'observacoes' => $request->observacoes,
-        ]);
-
-        return redirect()->route('users.index')->with('success', 'Usuário criado com sucesso.');
     }
 
-    public function show(User $user)
+    public function create(): View
     {
+        $this->authorize('create', User::class);
+
+        return view('users.create', ['roles' => $this->roleOptions()]);
+    }
+
+    public function store(UserRequest $request): RedirectResponse
+    {
+        User::create(array_merge(
+            $request->validated(),
+            ['must_change_password' => true]
+        ));
+
+        return redirect()->route('users.index')
+            ->with('success', 'Usuário criado com sucesso. A senha deverá ser alterada no primeiro acesso.');
+    }
+
+    public function show(User $user): View
+    {
+        $this->authorize('view', $user);
+
+        $user->load(['exams' => fn ($query) => $query->latest('data_exame')->limit(20),
+            'incidents' => fn ($query) => $query->latest('data_ocorrencia')->limit(20),
+            'risks' => fn ($query) => $query->latest('id')->limit(20)]);
+
         return view('users.show', compact('user'));
     }
 
-    public function edit(User $user)
+    public function edit(User $user): View
     {
-        return view('users.edit', compact('user'));
+        $this->authorize('update', $user);
+
+        return view('users.edit', [
+            'user' => $user,
+            'roles' => $this->roleOptions(),
+        ]);
     }
 
-    public function update(Request $request, User $user)
+    public function update(UserRequest $request, User $user): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', Rule::in(['admin', 'medico', 'tecnico', 'funcionario'])],
-            'cpf' => ['nullable', 'string', 'max:20'],
-            'cargo' => ['nullable', 'string', 'max:100'],
-            'setor' => ['nullable', 'string', 'max:100'],
-            'data_admissao' => ['nullable', 'date'],
-            'data_demissao' => ['nullable', 'date'],
-            'observacoes' => ['nullable', 'string'],
-        ], [
-            'name.required' => 'O nome é obrigatório.',
-            'email.required' => 'O e-mail é obrigatório.',
-            'email.email' => 'O e-mail informado é inválido.',
-            'email.unique' => 'Este e-mail já está cadastrado.',
-            'password.confirmed' => 'A confirmação de senha não coincide.',
-            'role.required' => 'O perfil de acesso é obrigatório.',
-            'role.in' => 'O perfil de acesso selecionado é inválido.',
-            'data_admissao.date' => 'A data de admissão é inválida.',
-            'data_demissao.date' => 'A data de demissão é inválida.',
-        ]);
-
-        $data = $request->only([
-            'name', 'email', 'role', 'cpf', 'cargo', 'setor', 'data_admissao', 'data_demissao', 'observacoes'
-        ]);
-
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
+        if ($user->is($request->user())
+            && $user->isAdmin()
+            && $request->input('role') !== UserRole::Admin->value) {
+            return back()
+                ->withErrors(['role' => 'Você não pode remover o próprio acesso de administrador.'])
+                ->withInput();
         }
 
-        $user->update($data);
+        $data = $request->validated();
+
+        if (! $request->filled('password')) {
+            unset($data['password']);
+        }
+
+        $user->fill($data)->save();
 
         return redirect()->route('users.index')->with('success', 'Usuário atualizado com sucesso.');
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user): RedirectResponse
     {
+        if ($user->is($request->user())) {
+            return back()->with('error', 'Não é possível excluir o próprio usuário.');
+        }
+
+        if ($user->isAdmin() && ! $this->hasOtherAdmin($user)) {
+            return back()->with('error', 'Não é possível excluir o último administrador do sistema.');
+        }
+
+        $this->authorize('delete', $user);
+
         $user->delete();
 
         return redirect()->route('users.index')->with('success', 'Usuário excluído com sucesso.');
+    }
+
+    public function restore(int $user): RedirectResponse
+    {
+        $registro = User::withTrashed()->findOrFail($user);
+
+        $this->authorize('restore', $registro);
+
+        $registro->restore();
+
+        return redirect()->route('users.index')->with('success', 'Usuário restaurado com sucesso.');
+    }
+
+    private function hasOtherAdmin(User $user): bool
+    {
+        return User::query()
+            ->where('role', UserRole::Admin->value)
+            ->where($user->getKeyName(), '!=', $user->getKey())
+            ->exists();
     }
 }

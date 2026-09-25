@@ -16,7 +16,7 @@
         <dl class="grid grid-cols-1 gap-4">
             <div><dt class="text-sm font-medium text-gray-500">Funcionário</dt><dd class="text-gray-900">{{ $health->user->name ?? '-' }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Tipo</dt><dd class="text-gray-900">{{ $health->tipo }}</dd></div>
-            <div><dt class="text-sm font-medium text-gray-500">Data do Registro</dt><dd class="text-gray-900">{{ \Carbon\Carbon::parse($health->data_registro)->format('d/m/Y') }}</dd></div>
+            <div><dt class="text-sm font-medium text-gray-500">Data do Registro</dt><dd class="text-gray-900">{{ $health->data_registro?->format('d/m/Y') }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Descrição</dt><dd class="text-gray-900">{{ $health->descricao }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Exame Relacionado</dt><dd class="text-gray-900">{{ $health->exam ? $health->exam->tipo : '-' }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Observações</dt><dd class="text-gray-900">{{ $health->observacoes ?? '-' }}</dd></div>

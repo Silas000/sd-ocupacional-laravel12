@@ -12,6 +12,44 @@
     <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{{ session('success') }}</div>
 @endif
 
+<x-filter-bar :action="route('incidents.index')">
+    <div class="flex-1 min-w-52">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Buscar</label>
+        <input type="search" name="q" value="{{ $filtros['q'] ?? '' }}" placeholder="Descrição, local ou colaborador"
+               class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+    </div>
+
+    <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Severidade</label>
+        <select name="severidade" class="border-gray-300 rounded-md shadow-sm text-sm">
+            <option value="">Todas</option>
+            @foreach($severidades as $severidade)
+                <option value="{{ $severidade->value }}" {{ ($filtros['severidade'] ?? '') === $severidade->value ? 'selected' : '' }}>{{ $severidade->label() }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+        <select name="tipo" class="border-gray-300 rounded-md shadow-sm text-sm">
+            <option value="">Todos</option>
+            @foreach($tipos as $tipo)
+                <option value="{{ $tipo->value }}" {{ ($filtros['tipo'] ?? '') === $tipo->value ? 'selected' : '' }}>{{ $tipo->label() }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">De</label>
+        <input type="date" name="de" value="{{ $filtros['de'] ?? '' }}" class="border-gray-300 rounded-md shadow-sm text-sm">
+    </div>
+
+    <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Até</label>
+        <input type="date" name="ate" value="{{ $filtros['ate'] ?? '' }}" class="border-gray-300 rounded-md shadow-sm text-sm">
+    </div>
+</x-filter-bar>
+
 <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
@@ -28,10 +66,14 @@
             @forelse($incidents as $incident)
                 <tr>
                     <td class="px-6 py-4">{{ $incident->user->name ?? '-' }}</td>
-                    <td class="px-6 py-4">{{ \Carbon\Carbon::parse($incident->data_ocorrencia)->format('d/m/Y') }}</td>
+                    <td class="px-6 py-4">{{ $incident->data_ocorrencia?->format('d/m/Y') }}</td>
                     <td class="px-6 py-4">{{ $incident->local }}</td>
-                    <td class="px-6 py-4">{{ $incident->severidade ?? '-' }}</td>
-                    <td class="px-6 py-4">{{ $incident->tipo ?? '-' }}</td>
+                    <td class="px-6 py-4">
+                        <x-badge :color="$incident->severidadeEnum()?->badgeClass()">
+                            {{ $incident->severidadeEnum()?->label() ?? '-' }}
+                        </x-badge>
+                    </td>
+                    <td class="px-6 py-4">{{ $incident->tipoEnum()?->label() ?? $incident->tipo }}</td>
                     <td class="px-6 py-4 text-right space-x-2">
                         <a href="{{ route('incidents.show', $incident) }}" class="text-blue-600 hover:underline">Ver</a>
                         <a href="{{ route('incidents.edit', $incident) }}" class="text-indigo-600 hover:underline">Editar</a>
@@ -47,4 +89,6 @@
         </tbody>
     </table>
 </div>
+
+<x-pagination-summary :paginator="$incidents" />
 @endsection

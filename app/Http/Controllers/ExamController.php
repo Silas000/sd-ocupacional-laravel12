@@ -2,119 +2,105 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesResults;
+use App\Http\Requests\ExamRequest;
 use App\Models\Exam;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class ExamController extends Controller
 {
-    public function __construct()
+    use PaginatesResults;
+
+    public function index(Request $request)
     {
-        $this->middleware('check.role:admin,medico');
-    }
+        $this->authorize('viewAny', Exam::class);
 
-    public function index()
-    {
-        $user = auth()->user();
+        $filtros = $this->filtros($request, ['q', 'status', 'tipo', 'setor', 'de', 'ate']);
 
-        if ($user->isAdmin()) {
-            $exams = Exam::with('user')->get();
-        } elseif ($user->isMedico()) {
-            $exams = Exam::with('user')->get();
-        } else {
-            $exams = Exam::where('user_id', $user->id)->with('user')->get();
-        }
+        $exams = Exam::query()
+            ->with('user')
+            ->when(
+                ! auth()->user()->roleEnum()->hasHealthAccess(),
+                fn (Builder $query) => $query->doUsuario(auth()->id())
+            )
+            ->filtrar($filtros)
+            ->latest('id')
+            ->paginate($this->perPage($request))
+            ->withQueryString();
 
-        return view('exams.index', compact('exams'));
+        return view('exams.index', [
+            'exams' => $exams,
+            'filtros' => $filtros,
+            'statuses' => $this->examStatusOptions(),
+            'tipos' => $this->examTypeOptions(),
+            'setores' => $this->setoresExistentes(),
+        ]);
     }
 
     public function create()
     {
-        $users = User::all();
-        return view('exams.create', compact('users'));
+        $this->authorize('create', Exam::class);
+
+        return view('exams.create', [
+            'users' => $this->selectableUsers(),
+            'tipos' => $this->examTypeOptions(),
+            'statuses' => $this->examStatusOptions(),
+        ]);
     }
 
-    public function store(Request $request)
+    public function store(ExamRequest $request)
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'tipo' => ['required', 'string', 'max:100'],
-            'data_exame' => ['required', 'date'],
-            'data_vencimento' => ['nullable', 'date'],
-            'status' => ['nullable', 'string', 'max:50'],
-            'medico_responsavel' => ['nullable', 'string', 'max:100'],
-            'resultado' => ['nullable', 'string'],
-            'observacoes' => ['nullable', 'string'],
-        ], [
-            'user_id.required' => 'O funcionário é obrigatório.',
-            'user_id.exists' => 'O funcionário selecionado não existe.',
-            'tipo.required' => 'O tipo do exame é obrigatório.',
-            'tipo.string' => 'O tipo do exame deve ser um texto.',
-            'tipo.max' => 'O tipo do exame não pode ter mais de 100 caracteres.',
-            'data_exame.required' => 'A data do exame é obrigatória.',
-            'data_exame.date' => 'A data do exame é inválida.',
-            'data_vencimento.date' => 'A data de vencimento é inválida.',
-            'status.string' => 'O status deve ser um texto.',
-            'status.max' => 'O status não pode ter mais de 50 caracteres.',
-            'medico_responsavel.string' => 'O médico responsável deve ser um texto.',
-            'medico_responsavel.max' => 'O nome do médico responsável não pode ter mais de 100 caracteres.',
-            'resultado.string' => 'O resultado deve ser um texto.',
-            'observacoes.string' => 'As observações devem ser um texto.',
-        ]);
-
-        Exam::create($validated);
+        Exam::create($request->validated());
 
         return redirect()->route('exams.index')->with('success', 'Exame cadastrado com sucesso.');
     }
 
     public function show(Exam $exam)
     {
+        $this->authorize('view', $exam);
+
+        $exam->load('user', 'healthRecords');
+
         return view('exams.show', compact('exam'));
     }
 
     public function edit(Exam $exam)
     {
-        $users = User::all();
-        return view('exams.edit', compact('exam', 'users'));
+        $this->authorize('update', $exam);
+
+        return view('exams.edit', [
+            'exam' => $exam,
+            'users' => $this->selectableUsers(),
+            'tipos' => $this->examTypeOptions(),
+            'statuses' => $this->examStatusOptions(),
+        ]);
     }
 
-    public function update(Request $request, Exam $exam)
+    public function update(ExamRequest $request, Exam $exam)
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'tipo' => ['required', 'string', 'max:100'],
-            'data_exame' => ['required', 'date'],
-            'data_vencimento' => ['nullable', 'date'],
-            'status' => ['nullable', 'string', 'max:50'],
-            'medico_responsavel' => ['nullable', 'string', 'max:100'],
-            'resultado' => ['nullable', 'string'],
-            'observacoes' => ['nullable', 'string'],
-        ], [
-            'user_id.required' => 'O funcionário é obrigatório.',
-            'user_id.exists' => 'O funcionário selecionado não existe.',
-            'tipo.required' => 'O tipo do exame é obrigatório.',
-            'tipo.string' => 'O tipo do exame deve ser um texto.',
-            'tipo.max' => 'O tipo do exame não pode ter mais de 100 caracteres.',
-            'data_exame.required' => 'A data do exame é obrigatória.',
-            'data_exame.date' => 'A data do exame é inválida.',
-            'data_vencimento.date' => 'A data de vencimento é inválida.',
-            'status.string' => 'O status deve ser um texto.',
-            'status.max' => 'O status não pode ter mais de 50 caracteres.',
-            'medico_responsavel.string' => 'O médico responsável deve ser um texto.',
-            'medico_responsavel.max' => 'O nome do médico responsável não pode ter mais de 100 caracteres.',
-            'resultado.string' => 'O resultado deve ser um texto.',
-            'observacoes.string' => 'As observações devem ser um texto.',
-        ]);
-
-        $exam->update($validated);
+        $exam->update($request->validated());
 
         return redirect()->route('exams.index')->with('success', 'Exame atualizado com sucesso.');
     }
 
     public function destroy(Exam $exam)
     {
+        $this->authorize('delete', $exam);
+
         $exam->delete();
 
         return redirect()->route('exams.index')->with('success', 'Exame excluído com sucesso.');
+    }
+
+    public function restore(int $exam)
+    {
+        $registro = Exam::withTrashed()->findOrFail($exam);
+
+        $this->authorize('restore', $registro);
+
+        $registro->restore();
+
+        return redirect()->route('exams.index')->with('success', 'Exame restaurado com sucesso.');
     }
 }

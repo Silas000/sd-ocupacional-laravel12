@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -48,6 +51,12 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        if ($user->isAdmin() && $this->isLastAdmin($user)) {
+            throw ValidationException::withMessages([
+                'password' => 'Não é possível excluir a conta do último administrador do sistema.',
+            ]);
+        }
+
         Auth::logout();
 
         $user->delete();
@@ -56,5 +65,13 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    private function isLastAdmin(User $user): bool
+    {
+        return ! User::query()
+            ->where('role', UserRole::Admin->value)
+            ->where($user->getKeyName(), '!=', $user->getKey())
+            ->exists();
     }
 }

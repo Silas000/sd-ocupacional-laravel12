@@ -29,25 +29,31 @@
             <input type="email" name="email" value="{{ old('email', $user->email) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
         </div>
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700">Senha (deixe em branco para manter)</label>
-            <input type="password" name="password" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Nova senha (em branco para manter)</label>
+                <input type="password" name="password" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" autocomplete="new-password">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Confirmar nova senha</label>
+                <input type="password" name="password_confirmation" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" autocomplete="new-password">
+            </div>
         </div>
+        <p class="text-xs text-gray-500">Mínimo de 8 caracteres, com maiúscula, minúscula, número e símbolo. Não pode repetir as 5 senhas anteriores.</p>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Função</label>
+            <label class="block text-sm font-medium text-gray-700">Perfil de acesso</label>
             <select name="role" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
                 <option value="">Selecione</option>
-                <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Admin</option>
-                <option value="funcionario" {{ old('role', $user->role) == 'funcionario' ? 'selected' : '' }}>Funcionário</option>
-                <option value="medico" {{ old('role', $user->role) == 'medico' ? 'selected' : '' }}>Médico</option>
-                <option value="tecnico" {{ old('role', $user->role) == 'tecnico' ? 'selected' : '' }}>Técnico</option>
+                @foreach($roles as $role)
+                    <option value="{{ $role->value }}" {{ old('role', $user->role) === $role->value ? 'selected' : '' }}>{{ $role->label() }}</option>
+                @endforeach
             </select>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">CPF</label>
-            <input type="text" name="cpf" value="{{ old('cpf', $user->cpf) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <input type="text" name="cpf" value="{{ old('cpf', $user->cpfFormatado()) }}" placeholder="000.000.000-00" maxlength="20" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
         </div>
 
         <div>
@@ -60,14 +66,15 @@
             <input type="text" name="setor" value="{{ old('setor', $user->setor) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
         </div>
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700">Data de Admissão</label>
-            <input type="date" name="data_admissao" value="{{ old('data_admissao', $user->data_admissao) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-        </div>
-
-        <div>
-            <label class="block text-sm font-medium text-gray-700">Data de Demissão</label>
-            <input type="date" name="data_demissao" value="{{ old('data_demissao', $user->data_demissao) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Data de Admissão</label>
+                <input type="date" name="data_admissao" value="{{ old('data_admissao', $user->data_admissao?->format('Y-m-d')) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Data de Demissão</label>
+                <input type="date" name="data_demissao" value="{{ old('data_demissao', $user->data_demissao?->format('Y-m-d')) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            </div>
         </div>
 
         <div>

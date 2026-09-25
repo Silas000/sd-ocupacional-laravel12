@@ -8,16 +8,27 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ForcePasswordChange
 {
+    /**
+     * Rotas liberadas enquanto a troca obrigatória de senha está pendente.
+     *
+     * @var array<int, string>
+     */
+    private const ALLOWED_ROUTES = [
+        'force-password-change',
+        'force-password-change.update',
+        'logout',
+    ];
+
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check() && auth()->user()->must_change_password) {
-            if ($request->routeIs('force-password-change') || $request->routeIs('logout')) {
-                return $next($request);
-            }
-
-            return redirect()->route('force-password-change');
+        if (! $request->user()?->must_change_password) {
+            return $next($request);
         }
 
-        return $next($request);
+        if ($request->routeIs(...self::ALLOWED_ROUTES)) {
+            return $next($request);
+        }
+
+        return redirect()->route('force-password-change');
     }
 }

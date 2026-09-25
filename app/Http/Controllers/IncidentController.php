@@ -2,112 +2,103 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesResults;
+use App\Http\Requests\IncidentRequest;
 use App\Models\Incident;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class IncidentController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('check.role:admin,tecnico');
-    }
+    use PaginatesResults;
 
-    public function index()
+    public function index(Request $request)
     {
-        $incidents = Incident::with('user')->get();
-        return view('incidents.index', compact('incidents'));
+        $this->authorize('viewAny', Incident::class);
+
+        $filtros = $this->filtros($request, ['q', 'severidade', 'tipo', 'de', 'ate']);
+
+        $incidents = Incident::query()
+            ->with('user')
+            ->when(
+                ! auth()->user()->roleEnum()->hasSafetyAccess(),
+                fn ($query) => $query->where('user_id', auth()->id())
+            )
+            ->filtrar($filtros)
+            ->latest('data_ocorrencia')
+            ->paginate($this->perPage($request))
+            ->withQueryString();
+
+        return view('incidents.index', [
+            'incidents' => $incidents,
+            'filtros' => $filtros,
+            'tipos' => $this->incidentTypeOptions(),
+            'severidades' => $this->incidentSeverityOptions(),
+        ]);
     }
 
     public function create()
     {
-        $users = User::all();
-        return view('incidents.create', compact('users'));
+        $this->authorize('create', Incident::class);
+
+        return view('incidents.create', [
+            'users' => $this->selectableUsers(),
+            'tipos' => $this->incidentTypeOptions(),
+            'severidades' => $this->incidentSeverityOptions(),
+        ]);
     }
 
-    public function store(Request $request)
+    public function store(IncidentRequest $request)
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'data_ocorrencia' => ['required', 'date'],
-            'local' => ['required', 'string', 'max:255'],
-            'descricao' => ['required', 'string'],
-            'severidade' => ['nullable', 'string', 'max:50'],
-            'tipo' => ['nullable', 'string', 'max:100'],
-            'medidas_corretivas' => ['nullable', 'string'],
-            'observacoes' => ['nullable', 'string'],
-        ], [
-            'user_id.required' => 'O funcionário é obrigatório.',
-            'user_id.exists' => 'O funcionário selecionado não existe.',
-            'data_ocorrencia.required' => 'A data da ocorrência é obrigatória.',
-            'data_ocorrencia.date' => 'A data da ocorrência é inválida.',
-            'local.required' => 'O local é obrigatório.',
-            'local.string' => 'O local deve ser um texto.',
-            'local.max' => 'O local não pode ter mais de 255 caracteres.',
-            'descricao.required' => 'A descrição é obrigatória.',
-            'descricao.string' => 'A descrição deve ser um texto.',
-            'severidade.string' => 'A severidade deve ser um texto.',
-            'severidade.max' => 'A severidade não pode ter mais de 50 caracteres.',
-            'tipo.string' => 'O tipo deve ser um texto.',
-            'tipo.max' => 'O tipo não pode ter mais de 100 caracteres.',
-            'medidas_corretivas.string' => 'As medidas corretivas devem ser um texto.',
-            'observacoes.string' => 'As observações devem ser um texto.',
-        ]);
-
-        Incident::create($validated);
+        Incident::create($request->validated());
 
         return redirect()->route('incidents.index')->with('success', 'Ocorrência registrada com sucesso.');
     }
 
     public function show(Incident $incident)
     {
+        $this->authorize('view', $incident);
+
+        $incident->load('user', 'risks');
+
         return view('incidents.show', compact('incident'));
     }
 
     public function edit(Incident $incident)
     {
-        $users = User::all();
-        return view('incidents.edit', compact('incident', 'users'));
+        $this->authorize('update', $incident);
+
+        return view('incidents.edit', [
+            'incident' => $incident,
+            'users' => $this->selectableUsers(),
+            'tipos' => $this->incidentTypeOptions(),
+            'severidades' => $this->incidentSeverityOptions(),
+        ]);
     }
 
-    public function update(Request $request, Incident $incident)
+    public function update(IncidentRequest $request, Incident $incident)
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'data_ocorrencia' => ['required', 'date'],
-            'local' => ['required', 'string', 'max:255'],
-            'descricao' => ['required', 'string'],
-            'severidade' => ['nullable', 'string', 'max:50'],
-            'tipo' => ['nullable', 'string', 'max:100'],
-            'medidas_corretivas' => ['nullable', 'string'],
-            'observacoes' => ['nullable', 'string'],
-        ], [
-            'user_id.required' => 'O funcionário é obrigatório.',
-            'user_id.exists' => 'O funcionário selecionado não existe.',
-            'data_ocorrencia.required' => 'A data da ocorrência é obrigatória.',
-            'data_ocorrencia.date' => 'A data da ocorrência é inválida.',
-            'local.required' => 'O local é obrigatório.',
-            'local.string' => 'O local deve ser um texto.',
-            'local.max' => 'O local não pode ter mais de 255 caracteres.',
-            'descricao.required' => 'A descrição é obrigatória.',
-            'descricao.string' => 'A descrição deve ser um texto.',
-            'severidade.string' => 'A severidade deve ser um texto.',
-            'severidade.max' => 'A severidade não pode ter mais de 50 caracteres.',
-            'tipo.string' => 'O tipo deve ser um texto.',
-            'tipo.max' => 'O tipo não pode ter mais de 100 caracteres.',
-            'medidas_corretivas.string' => 'As medidas corretivas devem ser um texto.',
-            'observacoes.string' => 'As observações devem ser um texto.',
-        ]);
-
-        $incident->update($validated);
+        $incident->update($request->validated());
 
         return redirect()->route('incidents.index')->with('success', 'Ocorrência atualizada com sucesso.');
     }
 
     public function destroy(Incident $incident)
     {
+        $this->authorize('delete', $incident);
+
         $incident->delete();
 
         return redirect()->route('incidents.index')->with('success', 'Ocorrência excluída com sucesso.');
+    }
+
+    public function restore(int $incident)
+    {
+        $registro = Incident::withTrashed()->findOrFail($incident);
+
+        $this->authorize('restore', $registro);
+
+        $registro->restore();
+
+        return redirect()->route('incidents.index')->with('success', 'Ocorrência restaurada com sucesso.');
     }
 }

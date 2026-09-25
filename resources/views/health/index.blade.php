@@ -12,6 +12,24 @@
     <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{{ session('success') }}</div>
 @endif
 
+<x-filter-bar :action="route('health.index')">
+    <div class="flex-1 min-w-52">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Buscar</label>
+        <input type="search" name="q" value="{{ $filtros['q'] ?? '' }}" placeholder="Descrição, observações ou colaborador"
+               class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+    </div>
+
+    <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">De</label>
+        <input type="date" name="de" value="{{ $filtros['de'] ?? '' }}" class="border-gray-300 rounded-md shadow-sm text-sm">
+    </div>
+
+    <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Até</label>
+        <input type="date" name="ate" value="{{ $filtros['ate'] ?? '' }}" class="border-gray-300 rounded-md shadow-sm text-sm">
+    </div>
+</x-filter-bar>
+
 <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
@@ -28,8 +46,8 @@
                 <tr>
                     <td class="px-6 py-4">{{ $record->user->name ?? '-' }}</td>
                     <td class="px-6 py-4">{{ $record->tipo }}</td>
-                    <td class="px-6 py-4">{{ \Carbon\Carbon::parse($record->data_registro)->format('d/m/Y') }}</td>
-                    <td class="px-6 py-4">{{ \Illuminate\Support\Str::limit($record->descricao, 60) }}</td>
+                    <td class="px-6 py-4">{{ $record->data_registro?->format('d/m/Y') }}</td>
+                    <td class="px-6 py-4">{{ $record->resumo() }}</td>
                     <td class="px-6 py-4 text-right space-x-2">
                         <a href="{{ route('health.show', $record) }}" class="text-blue-600 hover:underline">Ver</a>
                         <a href="{{ route('health.edit', $record) }}" class="text-indigo-600 hover:underline">Editar</a>
@@ -45,4 +63,6 @@
         </tbody>
     </table>
 </div>
+
+<x-pagination-summary :paginator="$records" />
 @endsection

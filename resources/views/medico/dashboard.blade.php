@@ -36,13 +36,12 @@
                         @forelse($examesRecentes as $exam)
                             <tr class="border-b">
                                 <td class="py-2">{{ $exam->user->name ?? '-' }}</td>
-                                <td class="py-2">{{ $exam->tipo }}</td>
-                                <td class="py-2">{{ \Carbon\Carbon::parse($exam->data_exame)->format('d/m/Y') }}</td>
+                                <td class="py-2">{{ $exam->tipoEnum()?->label() ?? $exam->tipo }}</td>
+                                <td class="py-2">{{ $exam->data_exame?->format('d/m/Y') }}</td>
                                 <td class="py-2">
-                                    <span class="px-2 py-1 text-xs rounded-full
-                                        {{ $exam->status == 'realizado' ? 'bg-green-100 text-green-800' : ($exam->status == 'pendente' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
-                                        {{ $exam->status ?? '-' }}
-                                    </span>
+                                    <x-badge :color="$exam->statusEnum()?->badgeClass()">
+                                        {{ $exam->statusEnum()?->label() ?? '-' }}
+                                    </x-badge>
                                 </td>
                             </tr>
                         @empty
@@ -64,7 +63,6 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const risksBySetorCtx = document.getElementById('risksBySetorChart');

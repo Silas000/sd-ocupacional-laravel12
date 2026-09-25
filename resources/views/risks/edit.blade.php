@@ -20,11 +20,13 @@
         @csrf @method('PUT')
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Funcionário</label>
+            <label class="block text-sm font-medium text-gray-700">Responsável</label>
             <select name="user_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
                 <option value="">Selecione</option>
                 @foreach($users as $user)
-                    <option value="{{ $user->id }}" {{ old('user_id', $risk->user_id) == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                    <option value="{{ $user->id }}" {{ (string) old('user_id', $risk->user_id) === (string) $user->id ? 'selected' : '' }}>
+                        {{ $user->name }}{{ $user->setor ? ' — '.$user->setor : '' }}
+                    </option>
                 @endforeach
             </select>
         </div>
@@ -46,12 +48,20 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Severidade</label>
-            <input type="text" name="severidade" value="{{ old('severidade', $risk->severidade) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <select name="severidade" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                @foreach($severidades as $severidade)
+                    <option value="{{ $severidade->value }}" {{ old('severidade', $risk->severidade) === $severidade->value ? 'selected' : '' }}>{{ $severidade->label() }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Categoria</label>
-            <input type="text" name="categoria" value="{{ old('categoria', $risk->categoria) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <select name="categoria" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                @foreach($categorias as $categoria)
+                    <option value="{{ $categoria->value }}" {{ old('categoria', $risk->categoria) === $categoria->value ? 'selected' : '' }}>{{ $categoria->label() }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div>

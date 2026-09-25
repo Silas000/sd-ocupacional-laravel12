@@ -52,14 +52,13 @@
                     <tbody>
                         @forelse($examesPessoais as $exam)
                             <tr class="border-b">
-                                <td class="py-2">{{ $exam->tipo }}</td>
-                                <td class="py-2">{{ \Carbon\Carbon::parse($exam->data_exame)->format('d/m/Y') }}</td>
-                                <td class="py-2">{{ \Carbon\Carbon::parse($exam->data_vencimento)->format('d/m/Y') }}</td>
+                                <td class="py-2">{{ $exam->tipoEnum()?->label() ?? $exam->tipo }}</td>
+                                <td class="py-2">{{ $exam->data_exame?->format('d/m/Y') }}</td>
+                                <td class="py-2">{{ $exam->data_vencimento?->format('d/m/Y') ?? '-' }}</td>
                                 <td class="py-2">
-                                    <span class="px-2 py-1 text-xs rounded-full
-                                        {{ $exam->data_vencimento < now() ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
-                                        {{ $exam->data_vencimento < now() ? 'Vencido' : 'Válido' }}
-                                    </span>
+                                    <x-badge :color="$exam->isVencido() ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'">
+                                        {{ $exam->isVencido() ? 'Vencido' : 'Válido' }}
+                                    </x-badge>
                                 </td>
                             </tr>
                         @empty
@@ -86,10 +85,9 @@
                             <tr class="border-b">
                                 <td class="py-2">{{ $risk->nome }}</td>
                                 <td class="py-2">
-                                    <span class="px-2 py-1 text-xs rounded-full
-                                        {{ $risk->severidade == 'alto' ? 'bg-red-100 text-red-800' : ($risk->severidade == 'medio' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800') }}">
-                                        {{ $risk->severidade }}
-                                    </span>
+                                    <x-badge :color="$risk->severidadeEnum()?->badgeClass()">
+                                        {{ $risk->severidadeEnum()?->label() ?? $risk->severidade }}
+                                    </x-badge>
                                 </td>
                                 <td class="py-2">{{ $risk->descricao }}</td>
                             </tr>
@@ -118,7 +116,7 @@
                         @foreach($incidentsPessoais as $incident)
                             <tr class="border-b">
                                 <td class="py-2">{{ $incident->local }}</td>
-                                <td class="py-2">{{ \Carbon\Carbon::parse($incident->data_ocorrencia)->format('d/m/Y') }}</td>
+                                <td class="py-2">{{ $incident->data_ocorrencia?->format('d/m/Y') }}</td>
                                 <td class="py-2">{{ $incident->descricao }}</td>
                             </tr>
                         @endforeach

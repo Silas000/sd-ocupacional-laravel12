@@ -24,7 +24,9 @@
             <select name="user_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
                 <option value="">Selecione</option>
                 @foreach($users as $user)
-                    <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                    <option value="{{ $user->id }}" {{ (string) old('user_id') === (string) $user->id ? 'selected' : '' }}>
+                        {{ $user->name }}{{ $user->setor ? ' — '.$user->setor : '' }}
+                    </option>
                 @endforeach
             </select>
         </div>
@@ -41,12 +43,20 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Tipo</label>
-            <input type="text" name="tipo" value="{{ old('tipo') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <select name="tipo" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                @foreach($tipos as $tipo)
+                    <option value="{{ $tipo->value }}" {{ old('tipo', 'incidente') === $tipo->value ? 'selected' : '' }}>{{ $tipo->label() }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Severidade</label>
-            <input type="text" name="severidade" value="{{ old('severidade') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <select name="severidade" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                @foreach($severidades as $severidade)
+                    <option value="{{ $severidade->value }}" {{ old('severidade', 'moderado') === $severidade->value ? 'selected' : '' }}>{{ $severidade->label() }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div>

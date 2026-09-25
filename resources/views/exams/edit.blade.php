@@ -24,29 +24,40 @@
             <select name="user_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
                 <option value="">Selecione</option>
                 @foreach($users as $user)
-                    <option value="{{ $user->id }}" {{ old('user_id', $exam->user_id) == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                    <option value="{{ $user->id }}" {{ (string) old('user_id', $exam->user_id) === (string) $user->id ? 'selected' : '' }}>
+                        {{ $user->name }}{{ $user->setor ? ' — '.$user->setor : '' }}
+                    </option>
                 @endforeach
             </select>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Tipo</label>
-            <input type="text" name="tipo" value="{{ old('tipo', $exam->tipo) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+            <select name="tipo" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                <option value="">Selecione</option>
+                @foreach($tipos as $tipo)
+                    <option value="{{ $tipo->value }}" {{ old('tipo', $exam->tipo) === $tipo->value ? 'selected' : '' }}>{{ $tipo->label() }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Data do Exame</label>
-            <input type="date" name="data_exame" value="{{ old('data_exame', $exam->data_exame) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+            <input type="date" name="data_exame" value="{{ old('data_exame', $exam->data_exame?->format('Y-m-d')) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Data de Vencimento</label>
-            <input type="date" name="data_vencimento" value="{{ old('data_vencimento', $exam->data_vencimento) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <input type="date" name="data_vencimento" value="{{ old('data_vencimento', $exam->data_vencimento?->format('Y-m-d')) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Status</label>
-            <input type="text" name="status" value="{{ old('status', $exam->status) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <select name="status" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                @foreach($statuses as $status)
+                    <option value="{{ $status->value }}" {{ old('status', $exam->status) === $status->value ? 'selected' : '' }}>{{ $status->label() }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div>

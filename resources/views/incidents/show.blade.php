@@ -15,7 +15,7 @@
     <div class="bg-white shadow-sm sm:rounded-lg p-6">
         <dl class="grid grid-cols-1 gap-4">
             <div><dt class="text-sm font-medium text-gray-500">Funcionário</dt><dd class="text-gray-900">{{ $incident->user->name ?? '-' }}</dd></div>
-            <div><dt class="text-sm font-medium text-gray-500">Data da Ocorrência</dt><dd class="text-gray-900">{{ \Carbon\Carbon::parse($incident->data_ocorrencia)->format('d/m/Y H:i') }}</dd></div>
+            <div><dt class="text-sm font-medium text-gray-500">Data da Ocorrência</dt><dd class="text-gray-900">{{ $incident->data_ocorrencia?->format('d/m/Y H:i') }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Local</dt><dd class="text-gray-900">{{ $incident->local }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Tipo</dt><dd class="text-gray-900">{{ $incident->tipo ?? '-' }}</dd></div>
             <div><dt class="text-sm font-medium text-gray-500">Severidade</dt><dd class="text-gray-900">{{ $incident->severidade ?? '-' }}</dd></div>

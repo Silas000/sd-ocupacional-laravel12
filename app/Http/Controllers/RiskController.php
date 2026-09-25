@@ -2,106 +2,104 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesResults;
+use App\Http\Requests\RiskRequest;
 use App\Models\Risk;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class RiskController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('check.role:admin,tecnico');
-    }
+    use PaginatesResults;
 
-    public function index()
+    public function index(Request $request)
     {
-        $risks = Risk::with('user')->get();
-        return view('risks.index', compact('risks'));
+        $this->authorize('viewAny', Risk::class);
+
+        $filtros = $this->filtros($request, ['q', 'severidade', 'categoria', 'setor', 'ativo']);
+
+        $risks = Risk::query()
+            ->with('user')
+            ->when(
+                ! auth()->user()->roleEnum()->hasSafetyAccess(),
+                fn ($query) => $query->where('user_id', auth()->id())
+            )
+            ->filtrar($filtros)
+            ->latest('id')
+            ->paginate($this->perPage($request))
+            ->withQueryString();
+
+        return view('risks.index', [
+            'risks' => $risks,
+            'filtros' => $filtros,
+            'severidades' => $this->riskSeverityOptions(),
+            'categorias' => $this->riskCategoryOptions(),
+            'setores' => $this->setoresExistentes(),
+        ]);
     }
 
     public function create()
     {
-        $users = User::all();
-        return view('risks.create', compact('users'));
+        $this->authorize('create', Risk::class);
+
+        return view('risks.create', [
+            'users' => $this->selectableUsers(),
+            'severidades' => $this->riskSeverityOptions(),
+            'categorias' => $this->riskCategoryOptions(),
+        ]);
     }
 
-    public function store(Request $request)
+    public function store(RiskRequest $request)
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'setor' => ['nullable', 'string', 'max:100'],
-            'nome' => ['required', 'string', 'max:100'],
-            'descricao' => ['nullable', 'string'],
-            'severidade' => ['nullable', 'string', 'max:50'],
-            'categoria' => ['nullable', 'string', 'max:100'],
-            'medidas_preventivas' => ['nullable', 'string'],
-            'ativo' => ['boolean'],
-        ], [
-            'user_id.required' => 'O funcionário é obrigatório.',
-            'user_id.exists' => 'O funcionário selecionado não existe.',
-            'nome.required' => 'O nome do risco é obrigatório.',
-            'nome.string' => 'O nome do risco deve ser um texto.',
-            'nome.max' => 'O nome do risco não pode ter mais de 100 caracteres.',
-            'descricao.string' => 'A descrição deve ser um texto.',
-            'severidade.string' => 'A severidade deve ser um texto.',
-            'severidade.max' => 'A severidade não pode ter mais de 50 caracteres.',
-            'categoria.string' => 'A categoria deve ser um texto.',
-            'categoria.max' => 'A categoria não pode ter mais de 100 caracteres.',
-            'medidas_preventivas.string' => 'As medidas preventivas devem ser um texto.',
-            'ativo.boolean' => 'O campo ativo deve ser verdadeiro ou falso.',
-        ]);
-
-        Risk::create($validated);
+        Risk::create($request->validated());
 
         return redirect()->route('risks.index')->with('success', 'Risco cadastrado com sucesso.');
     }
 
     public function show(Risk $risk)
     {
+        $this->authorize('view', $risk);
+
+        $risk->load('user', 'incidents');
+
         return view('risks.show', compact('risk'));
     }
 
     public function edit(Risk $risk)
     {
-        $users = User::all();
-        return view('risks.edit', compact('risk', 'users'));
+        $this->authorize('update', $risk);
+
+        return view('risks.edit', [
+            'risk' => $risk,
+            'users' => $this->selectableUsers(),
+            'severidades' => $this->riskSeverityOptions(),
+            'categorias' => $this->riskCategoryOptions(),
+        ]);
     }
 
-    public function update(Request $request, Risk $risk)
+    public function update(RiskRequest $request, Risk $risk)
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'setor' => ['nullable', 'string', 'max:100'],
-            'nome' => ['required', 'string', 'max:100'],
-            'descricao' => ['nullable', 'string'],
-            'severidade' => ['nullable', 'string', 'max:50'],
-            'categoria' => ['nullable', 'string', 'max:100'],
-            'medidas_preventivas' => ['nullable', 'string'],
-            'ativo' => ['boolean'],
-        ], [
-            'user_id.required' => 'O funcionário é obrigatório.',
-            'user_id.exists' => 'O funcionário selecionado não existe.',
-            'nome.required' => 'O nome do risco é obrigatório.',
-            'nome.string' => 'O nome do risco deve ser um texto.',
-            'nome.max' => 'O nome do risco não pode ter mais de 100 caracteres.',
-            'descricao.string' => 'A descrição deve ser um texto.',
-            'severidade.string' => 'A severidade deve ser um texto.',
-            'severidade.max' => 'A severidade não pode ter mais de 50 caracteres.',
-            'categoria.string' => 'A categoria deve ser um texto.',
-            'categoria.max' => 'A categoria não pode ter mais de 100 caracteres.',
-            'medidas_preventivas.string' => 'As medidas preventivas devem ser um texto.',
-            'ativo.boolean' => 'O campo ativo deve ser verdadeiro ou falso.',
-        ]);
-
-        $risk->update($validated);
+        $risk->update($request->validated());
 
         return redirect()->route('risks.index')->with('success', 'Risco atualizado com sucesso.');
     }
 
     public function destroy(Risk $risk)
     {
+        $this->authorize('delete', $risk);
+
         $risk->delete();
 
         return redirect()->route('risks.index')->with('success', 'Risco excluído com sucesso.');
+    }
+
+    public function restore(int $risk)
+    {
+        $registro = Risk::withTrashed()->findOrFail($risk);
+
+        $this->authorize('restore', $registro);
+
+        $registro->restore();
+
+        return redirect()->route('risks.index')->with('success', 'Risco restaurado com sucesso.');
     }
 }

@@ -2,112 +2,116 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\HealthRecord;
-use App\Models\User;
+use App\Http\Controllers\Concerns\PaginatesResults;
+use App\Http\Requests\HealthRecordRequest;
 use App\Models\Exam;
+use App\Models\HealthRecord;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 
 class HealthController extends Controller
 {
-    public function __construct()
+    use PaginatesResults;
+
+    public function index(Request $request)
     {
-        $this->middleware('check.role:admin,medico');
-    }
+        $this->authorize('viewAny', HealthRecord::class);
 
-    public function index()
-    {
-        $user = auth()->user();
+        $filtros = $this->filtros($request, ['q', 'tipo', 'de', 'ate']);
 
-        if ($user->isAdmin()) {
-            $records = HealthRecord::with('user', 'exam')->get();
-        } elseif ($user->isMedico()) {
-            $records = HealthRecord::with('user', 'exam')->get();
-        } else {
-            $records = HealthRecord::where('user_id', $user->id)->with('user', 'exam')->get();
-        }
+        $records = HealthRecord::query()
+            ->with('user', 'exam')
+            ->when(
+                ! auth()->user()->roleEnum()->hasHealthAccess(),
+                fn (Builder $query) => $query->where('user_id', auth()->id())
+            )
+            ->filtrar($filtros)
+            ->latest('id')
+            ->paginate($this->perPage($request))
+            ->withQueryString();
 
-        return view('health.index', compact('records'));
+        return view('health.index', [
+            'records' => $records,
+            'filtros' => $filtros,
+        ]);
     }
 
     public function create()
     {
-        $users = User::all();
-        $exams = Exam::all();
-        return view('health.create', compact('users', 'exams'));
+        $this->authorize('create', HealthRecord::class);
+
+        return view('health.create', [
+            'users' => $this->selectableUsers(),
+            'exams' => $this->selectableExams(),
+        ]);
     }
 
-    public function store(Request $request)
+    public function store(HealthRecordRequest $request)
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'exam_id' => ['nullable', 'exists:exams,id'],
-            'data_registro' => ['required', 'date'],
-            'descricao' => ['required', 'string'],
-            'tipo' => ['required', 'string', 'max:100'],
-            'observacoes' => ['nullable', 'string'],
-        ], [
-            'user_id.required' => 'O funcionário é obrigatório.',
-            'user_id.exists' => 'O funcionário selecionado não existe.',
-            'exam_id.exists' => 'O exame selecionado não existe.',
-            'data_registro.required' => 'A data do registro é obrigatória.',
-            'data_registro.date' => 'A data do registro é inválida.',
-            'descricao.required' => 'A descrição é obrigatória.',
-            'descricao.string' => 'A descrição deve ser um texto.',
-            'tipo.required' => 'O tipo é obrigatório.',
-            'tipo.string' => 'O tipo deve ser um texto.',
-            'tipo.max' => 'O tipo não pode ter mais de 100 caracteres.',
-            'observacoes.string' => 'As observações devem ser um texto.',
-        ]);
-
-        HealthRecord::create($validated);
+        HealthRecord::create($request->validated());
 
         return redirect()->route('health.index')->with('success', 'Registro de saúde cadastrado com sucesso.');
     }
 
     public function show(HealthRecord $health)
     {
+        $this->authorize('view', $health);
+
+        $health->load('user', 'exam');
+
         return view('health.show', compact('health'));
     }
 
     public function edit(HealthRecord $health)
     {
-        $users = User::all();
-        $exams = Exam::all();
-        return view('health.edit', compact('health', 'users', 'exams'));
+        $this->authorize('update', $health);
+
+        return view('health.edit', [
+            'health' => $health,
+            'users' => $this->selectableUsers(),
+            'exams' => $this->selectableExams(),
+        ]);
     }
 
-    public function update(Request $request, HealthRecord $health)
+    public function update(HealthRecordRequest $request, HealthRecord $health)
     {
-        $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
-            'exam_id' => ['nullable', 'exists:exams,id'],
-            'data_registro' => ['required', 'date'],
-            'descricao' => ['required', 'string'],
-            'tipo' => ['required', 'string', 'max:100'],
-            'observacoes' => ['nullable', 'string'],
-        ], [
-            'user_id.required' => 'O funcionário é obrigatório.',
-            'user_id.exists' => 'O funcionário selecionado não existe.',
-            'exam_id.exists' => 'O exame selecionado não existe.',
-            'data_registro.required' => 'A data do registro é obrigatória.',
-            'data_registro.date' => 'A data do registro é inválida.',
-            'descricao.required' => 'A descrição é obrigatória.',
-            'descricao.string' => 'A descrição deve ser um texto.',
-            'tipo.required' => 'O tipo é obrigatório.',
-            'tipo.string' => 'O tipo deve ser um texto.',
-            'tipo.max' => 'O tipo não pode ter mais de 100 caracteres.',
-            'observacoes.string' => 'As observações devem ser um texto.',
-        ]);
-
-        $health->update($validated);
+        $health->update($request->validated());
 
         return redirect()->route('health.index')->with('success', 'Registro de saúde atualizado com sucesso.');
     }
 
     public function destroy(HealthRecord $health)
     {
+        $this->authorize('delete', $health);
+
         $health->delete();
 
         return redirect()->route('health.index')->with('success', 'Registro de saúde excluído com sucesso.');
+    }
+
+    public function restore(int $health)
+    {
+        $registro = HealthRecord::withTrashed()->findOrFail($health);
+
+        $this->authorize('restore', $registro);
+
+        $registro->restore();
+
+        return redirect()->route('health.index')->with('success', 'Registro de saúde restaurado com sucesso.');
+    }
+
+    /**
+     * @return Collection<int, Exam>
+     */
+    protected function selectableExams()
+    {
+        return Exam::query()
+            ->with('user')
+            ->latest('data_exame')
+            ->limit(300)
+            ->get(['id', 'tipo', 'data_exame', 'status', 'user_id'])
+            ->sortBy(fn (Exam $exam) => $exam->user?->name ?? '')
+            ->values();
     }
 }

@@ -76,7 +76,10 @@ class ProfileTest extends TestCase
             ->assertRedirect('/');
 
         $this->assertGuest();
-        $this->assertNull($user->fresh());
+
+        // Exclusão lógica: o registro e o histórico de saúde são preservados.
+        $this->assertSoftDeleted('users', ['id' => $user->id]);
+        $this->assertNotNull($user->fresh());
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void

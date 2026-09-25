@@ -21,3 +21,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Documento de escopo do projeto, mantido fora do versionamento
+/read.txt

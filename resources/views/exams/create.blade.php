@@ -24,14 +24,21 @@
             <select name="user_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
                 <option value="">Selecione</option>
                 @foreach($users as $user)
-                    <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                    <option value="{{ $user->id }}" {{ (string) old('user_id') === (string) $user->id ? 'selected' : '' }}>
+                        {{ $user->name }}{{ $user->setor ? ' — '.$user->setor : '' }}
+                    </option>
                 @endforeach
             </select>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Tipo</label>
-            <input type="text" name="tipo" value="{{ old('tipo') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+            <select name="tipo" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                <option value="">Selecione</option>
+                @foreach($tipos as $tipo)
+                    <option value="{{ $tipo->value }}" {{ old('tipo') === $tipo->value ? 'selected' : '' }}>{{ $tipo->label() }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div>
@@ -42,11 +49,16 @@
         <div>
             <label class="block text-sm font-medium text-gray-700">Data de Vencimento</label>
             <input type="date" name="data_vencimento" value="{{ old('data_vencimento') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <p class="mt-1 text-xs text-gray-500">Deixe em branco para calcular automaticamente conforme a periodicidade do tipo de exame.</p>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Status</label>
-            <input type="text" name="status" value="{{ old('status') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <select name="status" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                @foreach($statuses as $status)
+                    <option value="{{ $status->value }}" {{ old('status', 'pendente') === $status->value ? 'selected' : '' }}>{{ $status->label() }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div>

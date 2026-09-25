@@ -59,13 +59,53 @@ class PasswordResetTest extends TestCase
             $response = $this->post('/reset-password', [
                 'token' => $notification->token,
                 'email' => $user->email,
-                'password' => 'password',
-                'password_confirmation' => 'password',
+                'password' => 'Nova@Senha123',
+                'password_confirmation' => 'Nova@Senha123',
             ]);
 
             $response
                 ->assertSessionHasNoErrors()
                 ->assertRedirect(route('login'));
+
+            return true;
+        });
+    }
+
+    public function test_password_fraca_e_rejeitada_no_reset(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $this->post('/forgot-password', ['email' => $user->email]);
+
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+            $this->post('/reset-password', [
+                'token' => $notification->token,
+                'email' => $user->email,
+                'password' => 'fraca',
+                'password_confirmation' => 'fraca',
+            ])->assertSessionHasErrors('password');
+
+            return true;
+        });
+    }
+
+    public function test_password_ja_utilizada_e_rejeitada_no_reset(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create(['password' => 'Antiga@123']);
+
+        $this->post('/forgot-password', ['email' => $user->email]);
+
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+            $this->post('/reset-password', [
+                'token' => $notification->token,
+                'email' => $user->email,
+                'password' => 'Antiga@123',
+                'password_confirmation' => 'Antiga@123',
+            ])->assertSessionHasErrors('password');
 
             return true;
         });
