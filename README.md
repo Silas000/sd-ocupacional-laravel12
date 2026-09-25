@@ -4,6 +4,24 @@
 [LinkedIn](https://www.linkedin.com/in/silas-rosario/)
 
 ---
+---
+
+## Capturas de Tela
+
+### Página de Login
+![Página de Login](https://i.imgur.com/D34T8ul.png)
+
+### Tela Dashboard Administrativo
+![Tela Dashboard Administrativo](https://i.imgur.com/ICEeK18.png)
+
+### Tela de Exames
+![Tela de Exames](https://i.imgur.com/WZrMIaX.png)
+
+### Tela de Usuários
+![Tela de Usuários](https://i.imgur.com/DaENRM5.png)
+
+### Tela de Personalização do Sistema
+![Tela de Personalização do Sistema](https://i.imgur.com/suiTqGn.png)
 
 ## Visão Geral
 
