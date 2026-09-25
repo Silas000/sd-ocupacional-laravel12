@@ -4,7 +4,6 @@
 [LinkedIn](https://www.linkedin.com/in/silas-rosario/)
 
 ---
----
 
 ## Capturas de Tela
 
